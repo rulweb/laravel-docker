@@ -1,0 +1,2 @@
+* * * * * www-data touch /var/log/supervisor/schedule.log && php /app/artisan schedule:run >> /var/log/supervisor/schedule.log 2>&1
+#
