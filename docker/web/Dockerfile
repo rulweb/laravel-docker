@@ -17,8 +17,8 @@ RUN apt-get update && apt-get install -y tzdata && \
 RUN pecl install -o -f redis && rm -rf /tmp/pear
 
 # Установка зависимостей
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git zip unzip curl libzip-dev libpq-dev \
-    libonig-dev libxslt-dev libfreetype6-dev libjpeg-dev cron supervisor exiftool locales
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y wget git zip unzip curl libzip-dev libpq-dev \
+    libonig-dev libxslt-dev libfreetype6-dev libjpeg-dev cron supervisor exiftool locales rsync
 
 # Устанавливаем поддержку русской локализации
 RUN sed -i '/ru_RU.UTF-8/s/^# //g' /etc/locale.gen && \
@@ -28,7 +28,10 @@ ENV LANGUAGE ru_RU:ru
 ENV LC_ALL ru_RU.UTF-8
 
 # Установка NodeJS
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs
+RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+
+RUN apt-get install -y imagemagick libmagickwand-dev --no-install-recommends \
+    && pecl install imagick
 
 # Очистка кеша
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -44,14 +47,14 @@ RUN docker-php-ext-configure zip
 
 RUN docker-php-ext-enable exif
 RUN docker-php-ext-enable redis
+RUN docker-php-ext-enable imagick
 
 # Устанавливаем композер
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-RUN mkdir -p /var/log/supervisor
-
-COPY crontab /etc/cron.d/cron_web
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY scheduler.sh /
+RUN chmod 755 /scheduler.sh
 
 RUN echo "[PHP]" > /usr/local/etc/php/conf.d/php.ini && \
     echo "date.timezone = ${TIMEZONE}" >> /usr/local/etc/php/conf.d/php.ini && \
